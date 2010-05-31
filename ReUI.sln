@@ -24,8 +24,10 @@ Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "demo", "demo\", "{48D8AE34-
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0FCB4931-9E46-40A3-AACF-D9D6B808FCDA}"
 	ProjectSection(SolutionItems) = preProject
-		reui.js = reui.js
+		LICENSE = LICENSE
+		LICENSE.iUI = LICENSE.iUI
 		README.md = README.md
+		reui.js = reui.js
 	EndProjectSection
 EndProject
 Global
