@@ -349,6 +349,8 @@ ReUI = {};
         ///     update: False if the transition should not update title and back button, True otherwise.
         /// </summary>
         show: function(page, o) {
+            if (typeof page === 'string') page = get(page);          
+
             var o = apply({
                 reverse: false
             }, o);
