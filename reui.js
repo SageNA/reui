@@ -30,10 +30,26 @@ ReUI = {};
 
             return a;
         }, 
-        dispatch: function(el, type, bubble, cancel) {
+        dispatch: function(el, type, bubble, cancel, o) {
+            if (typeof cancel === 'object')
+            {
+                var o = cancel;
+                var cancel = true;
+            }
+            else if (typeof bubble === 'object')
+            {
+                var o = bubble;
+                var bubble = true;
+                var cancel = true;    
+            }
+
+            var o = o || {};
+
             var evt = document.createEvent("UIEvent");
 
             evt.initEvent(type, bubble === false ? false : true, cancel === false ? false : true);
+
+            this.apply(evt, o);
         
             el.dispatchEvent(evt);
         },
@@ -296,7 +312,7 @@ ReUI = {};
             D.removeClass(R.rootEl, 'landscape');
         }
 
-        D.wait(scrollTo, 100, 0, 1);
+        D.wait(scrollTo, 100, 0, 1); 
     };
 
     var context = {
@@ -319,7 +335,8 @@ ReUI = {};
         titleEl: false,      
         backEl: false, 
         backText: 'Back',               
-        checkStateEvery: 250, 
+        checkStateEvery: 250,
+        prioritizeLocation: false, 
 
         init: function() {
             R.rootEl = R.rootEl || document.body;            
@@ -337,15 +354,29 @@ ReUI = {};
                 hashEl = D.get(location.hash.substr(1));
             }           
 
-            if (hashEl)
+            if (R.prioritizeLocation)
             {
-                if (selectedEl) D.unselect(selectedEl);                    
+                if (hashEl)
+                {
+                    if (selectedEl) D.unselect(selectedEl);                    
 
-                R.show(hashEl);
+                    R.show(hashEl);
+                }
+                else if (selectedEl)
+                {
+                    R.show(selectedEl);
+                }
             }
-            else if (selectedEl)
+            else
             {
-                R.show(selectedEl);
+                if (selectedEl)
+                {
+                    R.show(selectedEl);
+                }
+                else if (hashEl)
+                {
+                    R.show(hashEl);
+                }
             }
             
             if (typeof window.onorientationchange === 'object')
