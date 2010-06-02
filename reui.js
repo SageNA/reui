@@ -10,229 +10,286 @@
 */
 ReUI = {};
 
-(function() {  
-    var isIE = /msie/i.test(navigator.userAgent); 
+(function() {
+    var R = ReUI,
+        isIE = /msie/i.test(navigator.userAgent),
+        reForClassCache = {};
 
-    var apply = function (a, b, c) {
-        var a = a || {};
+    var reForClass = function(cls) {
+        return reForClassCache[cls] 
+            ? (reForClassCache[cls])
+            : (reForClassCache[cls] = new RegExp('(^|\\s)' + cls + '($|\\s)'));
+    };
 
-        if (b) for (var n in b) a[n] = b[n];
-        if (c) for (var n in c) a[n] = c[n];
+    ReUI.DomHelper = {
+        apply: function (a, b, c) {
+            var a = a || {};
 
-        return a;
-    };   
+            if (b) for (var n in b) a[n] = b[n];
+            if (c) for (var n in c) a[n] = c[n];
 
-    var bind = isIE 
-        ? function(target, type, fn) {
-            target.attachEvent(type, fn);
-        }
-        : function(target, type, fn, capture) {        
-            target.addEventListener(type, fn, capture);
-        };
+            return a;
+        }, 
+        dispatch: function(el, type, bubble, cancel) {
+            var evt = document.createEvent("UIEvent");
 
-    var unbind = isIE
-        ? function(target, type, fn) {
-            target.detachEvent(type, fn);
-        }
-        : function(target, type, fn, capture) {
-            target.removeEventListener(type, fn, capture);
-        };
-
-    var wait = isIE 
-        ? function(fn, delay) {
-            var pass = Array.prototype.slice.call(arguments, 2);
-            setTimeout(function() {
-                fn.apply(this, pass);
-            }, delay);
-        }
-        : setTimeout;
-
-    var clearWait = clearTimeout;
-
-    var timer = isIE 
-        ? function(fn, delay) {
-            var pass = Array.prototype.slice.call(arguments, 2);
-            setInterval(function() {
-                fn.apply(this, pass);
-            }, delay);
-        }
-        : setInterval;
-
-    var clearTimer = clearInterval;
-
-    var dispatch = function(el, type, bubble, cancel) {
-        var evt = document.createEvent("UIEvent");
-
-        evt.initEvent(type, bubble === false ? false : true, cancel === false ? false : true);
+            evt.initEvent(type, bubble === false ? false : true, cancel === false ? false : true);
         
-        el.dispatchEvent(evt);
-    };
-
-    var hasClass = function(el, cls) {
-        return (new RegExp('(^|\\s)' + cls + '($|\\s)')).test(el.className);
-    };
-
-    var addClass = function(el, cls) {
-        if (hasClass(el, cls) == false) el.className += ' ' + cls;            
-    };
-
-    var removeClass = function(el, cls) {
-        if (hasClass(el, cls)) el.className = el.className.replace(new RegExp('(^|\\s)' + cls + '($|\\s)'), ' ');
-    };
-
-    var get = function(id) {
-        return document.getElementById(id);
-    };
-
-    var up = function(node, name) {
-        while (node && (node.nodeType != 1 || node.localName.toLowerCase() != name))
-            node = node.parentNode;
-        return node;
-    };
-
-    var select = function(el) {
-        el.setAttribute('selected', 'true');
-    };
-
-    var unselect = function(el) {
-        el.removeAttribute('selected');
-    };
-
-    var fx = {
-        slideCompat: function(from, to, dir, fn) {
-
+            el.dispatchEvent(evt);
         },
-        slide: function(from, to, dir, fn) {            
-            var toStart = {value: '0%', axis: 'X'};
-            var fromStop = {value: '0%', axis: 'X'};            
-
-            switch (dir) 
-            {
-                case 'l': 
-                    toStart.value = (window.innerWidth) + 'px';
-                    toStart.axis = 'X';
-                    fromStop.value = '-100%';
-                    fromStop.axis = 'X';
-                    break;
-                case 'r':
-                    toStart.value = (-1 * window.innerWidth) + 'px';
-                    toStart.axis = 'X';
-                    fromStop.value = '100%';
-                    fromStop.axis = 'X';
-                    break;
-                case 'u':
-                    toStart.value = (window.innerHeight) + 'px';
-                    toStart.axis = 'Y';
-                    fromStop.value = '-100%';
-                    fromStop.axis = 'Y';
-                    break;
-                case 'd':
-                    toStart.value = (-1 * window.innerHeight) + 'px';
-                    toStart.axis = 'Y';
-                    fromStop.value = '100%';
-                    fromStop.axis = 'Y';
-                    break;
-            };
-
-            to.style.webkitTransitionDuration = '0ms';
-            from.style.webkitTransitionDuration = '0ms';
-
-            to.style.webkitTransform = 'translate' + toStart.axis + '(' + toStart.value + ')';
-            
-            select(to);
-
-            to.style.webkitTransitionDuration = 'inherit';
-            from.style.webkitTransitionDuration = 'inherit';
-
-            function complete() {
-                unbind(from, 'webkitTransitionEnd', complete, false);
-
-                if (hasClass(to, 'dialog') == false) unselect(from);  
-     
-                if (typeof fn === 'function') fn();
-            };
-            
-            bind(from, 'webkitTransitionEnd', complete, false);
-            
-            wait(function() {
-                from.style.webkitTransform = 'translate' + fromStop.axis + '(' + fromStop.value + ')';;
-
-                to.style.webkitTransform = 'translate' + toStart.axis + '(0%)';
-            }, 0);            
+        bind: isIE 
+            ? function(target, type, fn) {
+                target.attachEvent(type, fn);
+            }
+            : function(target, type, fn, capture) {        
+                target.addEventListener(type, fn, capture);
+            },
+        unbind: isIE
+            ? function(target, type, fn) {
+                target.detachEvent(type, fn);
+            }
+            : function(target, type, fn, capture) {
+                target.removeEventListener(type, fn, capture);
+            },
+        wait: isIE 
+            ? function(fn, delay) {
+                var pass = Array.prototype.slice.call(arguments, 2);
+                setTimeout(function() {
+                    fn.apply(this, pass);
+                }, delay);
+            }
+            : function() {
+                return setTimeout.apply(window, arguments);
+            },
+        clearWait: function() {
+            clearTimeout.apply(window, arguments);
         },
-        flip: function(from, to, dir, fn) {     
-            /// for left       
-            /// from card starts at 0 and goes to 180
-            /// to card starts at -180 and goes to 0
+        timer: isIE 
+            ? function(fn, delay) {
+                var pass = Array.prototype.slice.call(arguments, 2);
+                setInterval(function() {
+                    fn.apply(this, pass);
+                }, delay);
+            }
+            : function() {
+                return setInterval.apply(window, arguments);
+            },
+        clearTimer: function() {
+            clearInterval.apply(window, arguments);
+        },
+        hasClass: function(el, cls) {
+            return reForClass(cls).test(el.className);
+        },
+        addClass: function(el, cls) {
+            if (this.hasClass(el, cls) == false) el.className += ' ' + cls;            
+        },
+        removeClass: function(el, cls) {
+            if (this.hasClass(el, cls)) el.className = el.className.replace(reForClass(cls), ' ');
+        },
+        get: function(el) {
+            if (typeof el === 'string') return document.getElementById(el);
 
-            var toStart = {value: '0deg', axis: 'Y'};
-            var fromStop = {value: '0deg', axis: 'Y'};            
+            return el;
+        },
+        findAncestorByTag: function(node, name) {
+            while (node && (node.nodeType != 1 || node.localName.toLowerCase() != name))
+                node = node.parentNode;
+            return node;
+        },
+        select: function(el) {
+            el.setAttribute('selected', 'true');
+        },
+        unselect: function(el) {
+            el.removeAttribute('selected');
+        },
+        applyStyle: function(el, style) {
+            this.apply(el.style, style);
+        }
+    };
+})();
 
-            switch (dir) 
-            {
-                case 'l': 
-                    toStart.value = '-180deg';
-                    toStart.axis = 'Y';
-                    fromStop.value = '180deg';
-                    fromStop.axis = 'Y';
-                    break;
-                case 'r':
-                     toStart.value = '180deg';
-                    toStart.axis = 'Y';
-                    fromStop.value = '-180deg';
-                    fromStop.axis = 'Y';
-                    break; 
-                case 'u': 
-                    toStart.value = '-180deg';
-                    toStart.axis = 'X';
-                    fromStop.value = '180deg';
-                    fromStop.axis = 'X';
-                    break;
-                case 'd':
-                     toStart.value = '180deg';
-                    toStart.axis = 'X';
-                    fromStop.value = '-180deg';
-                    fromStop.axis = 'X';
-                    break;                 
-            };
-
-            to.style.webkitTransitionDuration = '0ms';
-            from.style.webkitTransitionDuration = '0ms';
-
-            to.style.webkitTransform = 'rotate' + toStart.axis + '(' + toStart.value + ')';
-            to.style.webkitTransformStyle = 'preserve-3d';
-            to.style.webkitBackfaceVisibility = 'hidden';
-            
-            from.style.webkitTransformStyle = 'preserve-3d';
-            from.style.webkitBackfaceVisibility = 'hidden';
-            
-            select(to);
-
-            to.style.webkitTransitionDuration = 'inherit';
-            from.style.webkitTransitionDuration = 'inherit';
-
-            function complete() {
-                unbind(from, 'webkitTransitionEnd', complete, false);
-     
-                if (hasClass(to, 'dialog') == false) unselect(from);  
-                
-                if (typeof fn === 'function') fn();
-            };
-            
-            bind(from, 'webkitTransitionEnd', complete, false);
-            
-            wait(function() {
-                from.style.webkitTransform = 'rotate' + fromStop.axis + '(' + fromStop.value + ')';;
-
-                to.style.webkitTransform = 'rotate' + toStart.axis + '(0deg)';
-            }, 0);     
-        }        
-    };    
-
+(function() {  
+    var R = ReUI,
+        D = ReUI.DomHelper;         
+       
     var resolveFx = function(name) {
-        return ReUI.useCompatibleFx 
-            ? fx[name + 'Compatible']
-            : fx[name];
+        return R.useCompatibleFx 
+            ? R.registeredFx[name + 'Compatible']
+            : R.registeredFx[name];
+    };
+
+    var onRootClick = function(evt) {    
+        var evt = evt || window.event;            
+        var target = evt.target || evt.srcElement;
+
+        var link = D.findAncestorByTag(target, 'a');
+        if (link) 
+        {                
+            if (link.href && link.hash && link.hash != '#' && !link.target)
+            {
+                D.select(link);
+                    
+                R.show(D.get(link.hash.substr(1)));
+
+                D.wait(D.unselect, 500, link);
+            }
+            else if (link == R.backEl)
+            {
+                R.back();
+            }
+            else if (link.getAttribute('type') == 'cancel')
+            {
+                if (context.dialog) D.unselect(context.dialog);                        
+            }
+            else
+            {
+                return;
+            }
+
+            evt.cancelBubble = true;
+            if (evt.stopPropagation) evt.stopPropagation();
+            if (evt.preventDefault) evt.preventDefault();
+        }
+    };
+
+    var transitionComplete = function(page, o) {
+        if (o.track !== false) 
+        {
+            if (typeof page.id !== 'string' || page.id.length <= 0)
+                page.id = 'liui-' + (context.counter++);
+
+            context.hash = location.hash = "#" + page.id;
+
+            context.history.push(page.id);
+        }
+          
+        if (o.update !== false) 
+        {
+            if (R.titleEl)
+            {
+                if (page.title) 
+                    R.titleEl.innerHTML = page.title;
+
+                var titleCls = page.getAttribute('titleCls') || page.getAttribute('ttlclass');
+                if (titleCls)
+                    R.titleEl.className = titleCls;
+            }
+
+            /* only update back button if track is set to true, since there is no history entry for the new page */
+            if (R.backEl && o.track !== false) 
+            {
+                var previous = D.get(context.history[context.history.length - 2]);
+                if (previous && !previous.getAttribute('hideBackButton'))
+                {
+                    R.backEl.style.display = 'inline';
+                    R.backEl.innerHTML = previous.title || R.backText;
+
+                    var backButtonCls = previous.getAttribute('backButtonCls') || previous.getAttribute('bbclass');
+
+                    R.backEl.className = backButtonCls ? 'button ' + backButtonCls : 'button';
+                }
+                else
+                {
+                    R.backEl.style.display = 'none';
+                }
+            }
+        }
+    };  
+    
+    var transition = function(from, to, o) {            
+        function complete() {
+            context.check = D.wait(checkOrientationAndLocation, R.checkStateEvery);    
+                
+            D.wait(transitionComplete, 0, to, o);                               
+                
+            D.dispatch(from, 'aftertransition', {out: true});            
+            D.dispatch(to, 'aftertransition', {out: false});
+        };
+                      
+        D.clearWait(context.check);
+
+        D.dispatch(from, 'beforetransition', {out: true});            
+        D.dispatch(to, 'beforetransition', {out: false});
+
+        if (typeof o.horizontal !== 'boolean')
+        {
+            var toHorizontal = to.getAttribute('horizontal');                
+            var fromHorizontal = from.getAttribute('horizontal');
+
+            if (toHorizontal === 'false' || fromHorizontal === 'false')
+            {
+                o.horizontal = false;
+            }
+        }
+            
+        var dir = o.horizontal !== false
+            ? o.reverse ? 'r' : 'l'
+            : o.reverse ? 'd' : 'u';
+
+        var toFx = to.getAttribute('effect');
+        var fromFx = from.getAttribute('effect');
+        var useFx = fromFx || toFx || R.defaultFx;
+
+        var fx = resolveFx(useFx);
+        if (fx) 
+            fx(from, to, dir, complete);
+    };                          
+
+    var checkOrientationAndLocation = function() {
+        if (!context.hasOrientationEvent)
+        {
+            if ((window.innerHeight != context.height) || (window.innerWidth != context.height))
+            {
+                context.height = window.innerHeight;
+                context.width = window.innerWidth;
+
+                setOrientation(context.height < context.width ? 'landscape' : 'portrait');
+            }
+        }
+
+        if (context.hash != location.hash)
+        {
+            var el = D.get(location.hash.substr(1));
+            if (el) 
+                R.show(el);                    
+        }
+            
+        context.check = D.wait(checkOrientationAndLocation, R.checkStateEvery);
+    };
+
+    var orientationChanged = function() {
+        switch (window.orientation) 
+        {                
+            case 90:
+            case -90:
+                setOrientation('landscape');
+                break;
+            default:
+                setOrientation('portrait');
+                break;
+        }
+    };
+
+    var setOrientation = function(value) {
+        R.rootEl.setAttribute('orient', value);
+
+        if (value == 'portrait') 
+        {
+            D.removeClass(R.rootEl, 'landscape');
+            D.addClass(R.rootEl, 'portrait');
+        }
+        else if (value == 'landscape')
+        {
+            D.removeClass(R.rootEl, 'portrait');
+            D.addClass(R.rootEl, 'landscape');
+        }
+        else
+        {
+            D.removeClass(R.rootEl, 'portrait');
+            D.removeClass(R.rootEl, 'landscape');
+        }
+
+        D.wait(scrollTo, 100, 0, 1);
     };
 
     var context = {
@@ -242,91 +299,71 @@ ReUI = {};
         width: 0,
         height: 0,
         check: 0,
+        hasOrientationEvent: false, 
         history: []
     };
     
-    apply(ReUI, {
+    D.apply(ReUI, {
         autoInit: true,
         useCompatibleFx: false,
-        fx: fx,
+        registeredFx: {},
+        defaultFx: 'slide',
         rootEl: false, 
         titleEl: false,      
         backEl: false, 
-        backText: 'Back',
-        hasOrientationEvent: false,        
-        checkStateEvery: 250,     
+        backText: 'Back',               
+        checkStateEvery: 250, 
 
         init: function() {
-            ReUI.rootEl = document.body;            
-            ReUI.backEl = ReUI.backEl || get('backButton');
-            ReUI.titleEl = ReUI.titleEl || get('pageTitle');
+            R.rootEl = R.rootEl || document.body;            
+            R.backEl = R.backEl || D.get('backButton');
+            R.titleEl = R.titleEl || D.get('pageTitle');
 
             var selectedEl, hashEl;
-            var el = ReUI.rootEl.firstChild;            
+            var el = R.rootEl.firstChild;            
             for (; el; el = el.nextSibling)
                 if (el.nodeType == 1 && el.getAttribute('selected') == 'true')
                     selectedEl = el;
 
             if (location.hash && location.hash.length > 1)
             {
-                hashEl = get(location.hash.substr(1));
+                hashEl = D.get(location.hash.substr(1));
             }           
 
             if (hashEl)
             {
-                if (selectedEl) unselect(selectedEl);                    
+                if (selectedEl) D.unselect(selectedEl);                    
 
-                ReUI.show(hashEl);
+                R.show(hashEl);
             }
             else if (selectedEl)
             {
-                ReUI.show(selectedEl);
+                R.show(selectedEl);
             }
             
             if (typeof window.onorientationchange === 'object')
             {
-                window.onorientationchange = ReUI.orientationChanged;
+                window.onorientationchange = orientationChanged;
 
-                ReUI.hasOrientationEvent = true;                
+                context.hasOrientationEvent = true;                
             }
-                      
-            context.check = wait(ReUI.checkOrientationAndLocation, ReUI.checkStateEvery);
 
-            bind(ReUI.rootEl, 'click', ReUI.onRootClick);
+            context.check = D.wait(checkOrientationAndLocation, R.checkStateEvery);
+
+            D.bind(R.rootEl, 'click', onRootClick);
         },
 
-        onRootClick: function(evt) {    
-            var evt = evt || window.event;            
-            var target = evt.target || evt.srcElement;
-
-            var link = up(target, 'a');
-            if (link) 
-            {                
-                if (link.href && link.hash && link.hash != '#' && !link.target)
-                {
-                    select(link);
-                    
-                    ReUI.show(get(link.hash.substr(1)));
-
-                    wait(unselect, 500, link);
-                }
-                else if (link == ReUI.backEl)
-                {
-                    ReUI.back();
-                }
-                else if (link.getAttribute('type') == 'cancel')
-                {
-                    if (context.dialog) unselect(context.dialog);                        
-                }
-                else
-                {
-                    return;
-                }
-
-                evt.cancelBubble = true;
-                if (evt.stopPropagation) evt.stopPropagation();
-                if (evt.preventDefault) evt.preventDefault();
+        registerFx: function(name, compatible, fn) {
+            if (typeof compatible === 'function')
+            {
+                fn = compatible;
+                compatible = false;
             }
+
+            if (compatible)
+                R.registeredFx[name + 'Compatible'] = fn;
+            else
+                R.registeredFx[name] = fn;
         },
 
         getCurrentPage: function() {
@@ -349,9 +386,9 @@ ReUI = {};
         ///     update: False if the transition should not update title and back button, True otherwise.
         /// </summary>
         show: function(page, o) {
-            if (typeof page === 'string') page = get(page);          
+            if (typeof page === 'string') page = D.get(page);          
 
-            var o = apply({
+            var o = D.apply({
                 reverse: false
             }, o);
 
@@ -367,190 +404,214 @@ ReUI = {};
 
             if (context.dialog)
             {
-                unselect(context.dialog);
-                
-                dispatch(context.dialog, 'blur', false);
+                D.unselect(context.dialog);                
+                D.dispatch(context.dialog, 'blur', false);
 
                 context.dialog = false;
             }  
 
-            if (hasClass(page, 'dialog'))
+            if (D.hasClass(page, 'dialog'))
             {
-                dispatch(page, 'focus', false);
+                D.dispatch(page, 'focus', false);
 
                 context.dialog = page;
 
-                select(page);
+                D.select(page);
             }
             else
             {
-                dispatch(page, 'load', false);
+                D.dispatch(page, 'load', false);
 
                 var from = context.page;
 
-                if (context.page) dispatch(context.page, 'blur', false);
+                if (context.page) D.dispatch(context.page, 'blur', false);
 
                 context.page = page;
 
-                dispatch(page, 'focus', false);
+                D.dispatch(page, 'focus', false);
 
                 if (from)
                 {
-                    if (o.reverse) dispatch(context.page, 'unload', false);
+                    if (o.reverse) D.dispatch(context.page, 'unload', false);
 
-                    wait(ReUI.transition, 0, from, page, o);
+                    D.wait(transition, 0, from, page, o);
                 }       
                 else
                 {   
-                    select(page);
+                    D.select(page);
                                      
-                    ReUI.transitionComplete(page, o);
+                    transitionComplete(page, o);
                 }
             }
-        },
-
-        transition: function(from, to, o) {            
-            function complete() {
-                context.check = wait(ReUI.checkOrientationAndLocation, ReUI.checkStateEvery);    
-                
-                wait(ReUI.transitionComplete, 0, to, o);                               
-                
-                dispatch(from, 'aftertransition', {out: true});            
-                dispatch(to, 'aftertransition', {out: false});
-            };
-                      
-            clearWait(context.check);
-
-            dispatch(from, 'beforetransition', {out: true});            
-            dispatch(to, 'beforetransition', {out: false});
-
-            if (typeof o.horizontal !== 'boolean')
-            {
-                var toHorizontal = to.getAttribute('horizontal');                
-                var fromHorizontal = from.getAttribute('horizontal');
-
-                if (toHorizontal === 'false' || fromHorizontal === 'false')
-                {
-                    o.horizontal = false;
-                }
-            }
-            
-            var dir = o.horizontal !== false
-                ? o.reverse ? 'r' : 'l'
-                : o.reverse ? 'd' : 'u';
-
-            var toFx = to.getAttribute('effect');
-            var fromFx = from.getAttribute('effect');
-            var useFx = fromFx || toFx || 'slide';
-
-            var fx = resolveFx(useFx);
-            if (fx) 
-                fx(from, to, dir, complete);
-        },      
-        
-        transitionComplete: function(page, o) {
-            if (o.track !== false) 
-            {
-                if (typeof page.id !== 'string' || page.id.length <= 0)
-                    page.id = 'liui-' + (context.counter++);
-
-                context.hash = location.hash = "#" + page.id;
-
-                context.history.push(page.id);
-            }
-          
-            if (o.update !== false) 
-            {
-                if (ReUI.titleEl)
-                {
-                    if (page.title) 
-                        ReUI.titleEl.innerHTML = page.title;
-
-                    var titleCls = page.getAttribute('titleCls') || page.getAttribute('ttlclass');
-                    if (titleCls)
-                        ReUI.titleEl.className = titleCls;
-                }
-
-                if (ReUI.backEl)
-                {
-                    var previous = get(context.history[context.history.length - 2]);
-                    if (previous && !previous.getAttribute('hideBackButton'))
-                    {
-                        ReUI.backEl.style.display = 'inline';
-                        ReUI.backEl.innerHTML = previous.title || ReUI.backText;
-
-                        var backButtonCls = previous.getAttribute('backButtonCls') || previous.getAttribute('bbclass');
-
-                        ReUI.backEl.className = backButtonCls ? 'button ' + backButtonCls : 'button';
-                    }
-                    else
-                    {
-                        ReUI.backEl.style.display = 'none';
-                    }
-                }
-            }
-        },                            
-
-        checkOrientationAndLocation: function() {
-            if (!ReUI.hasOrientationEvent)
-            {
-                if ((window.innerHeight != context.height) || (window.innerWidth != context.height))
-                {
-                    context.height = window.innerHeight;
-                    context.width = window.innerWidth;
-
-                    ReUI.setOrientation(context.height < context.width ? 'landscape' : 'portrait');
-                }
-            }
-
-            if (context.hash != location.hash)
-            {
-                var el = get(location.hash.substr(1));
-                if (el) 
-                    ReUI.show(el);                    
-            }
-            
-            context.check = wait(ReUI.checkOrientationAndLocation, ReUI.checkStateEvery);
-        },
-
-        orientationChanged: function() {
-            switch (window.orientation) 
-            {                
-                case 90:
-                case -90:
-                    ReUI.setOrientation('landscape');
-                    break;
-                default:
-                    ReUI.setOrientation('portrait');
-                    break;
-            }
-        },
-
-        setOrientation: function(value) {
-            ReUI.rootEl.setAttribute('orient', value);
-
-            if (value == 'portrait') 
-            {
-                removeClass(ReUI.rootEl, 'landscape');
-                addClass(ReUI.rootEl, 'portrait');
-            }
-            else if (value == 'landscape')
-            {
-                removeClass(ReUI.rootEl, 'portrait');
-                addClass(ReUI.rootEl, 'landscape');
-            }
-            else
-            {
-                removeClass(ReUI.rootEl, 'portrait');
-                removeClass(ReUI.rootEl, 'landscape');
-            }
-
-            wait(scrollTo, 100, 0, 1);
-        }
+        }                    
     });
 
-    bind(window, 'load', function(evt) {
-        if (ReUI.autoInit)
-            ReUI.init();
+    D.bind(window, 'load', function(evt) {
+        if (R.autoInit)
+            R.init();
     });
 })();
+
+(function() {
+    var R = ReUI,
+        D = ReUI.DomHelper;
+
+    R.registerFx('slide', function(from, to, dir, fn) {              
+        var toStart = {value: '0%', axis: 'X'};
+        var fromStop = {value: '0%', axis: 'X'};            
+
+        switch (dir) 
+        {
+            case 'l': 
+                toStart.value = (window.innerWidth) + 'px';
+                toStart.axis = 'X';
+                fromStop.value = '-100%';
+                fromStop.axis = 'X';
+                break;
+            case 'r':
+                toStart.value = (-1 * window.innerWidth) + 'px';
+                toStart.axis = 'X';
+                fromStop.value = '100%';
+                fromStop.axis = 'X';
+                break;
+            case 'u':
+                toStart.value = (window.innerHeight) + 'px';
+                toStart.axis = 'Y';
+                fromStop.value = '-100%';
+                fromStop.axis = 'Y';
+                break;
+            case 'd':
+                toStart.value = (-1 * window.innerHeight) + 'px';
+                toStart.axis = 'Y';
+                fromStop.value = '100%';
+                fromStop.axis = 'Y';
+                break;
+        };
+      
+        D.applyStyle(to, {
+            'webkitTransitionDuration': '0ms',
+            'webkitTransitionProperty': '-webkit-transform',
+            'webkitTransform': 'translate' + toStart.axis + '(' + toStart.value + ')'
+        });
+            
+        D.select(to);
+
+        D.applyStyle(to, {
+            'webkitTransitionDuration': 'inherit'
+        });
+                
+        D.applyStyle(from, {
+            'webkitTransitionDuration': 'inherit',
+            'webkitTransitionProperty': '-webkit-transform'
+        });
+
+        function complete() {
+            D.unbind(from, 'webkitTransitionEnd', complete, false);
+
+            D.applyStyle(to, {
+                'webkitTransitionProperty': 'inherit'
+            }); 
+            
+            D.applyStyle(from, {
+                'webkitTransitionProperty': 'inherit'
+            });
+
+            if (D.hasClass(to, 'dialog') == false) D.unselect(from);  
+     
+            if (typeof fn === 'function') fn();
+        };
+            
+        D.bind(from, 'webkitTransitionEnd', complete, false);            
+        D.wait(function() {            
+            D.applyStyle(from, {
+                'webkitTransform': 'translate' + fromStop.axis + '(' + fromStop.value + ')'
+            });
+
+            D.applyStyle(to, {
+                'webkitTransform': 'translate' + toStart.axis + '(0%)'
+            });
+        }, 0);            
+    });
+
+    R.registerFx('flip', function(from, to, dir, fn) {             
+        var toStart = {value: '0deg', axis: 'Y'};
+        var fromStop = {value: '0deg', axis: 'Y'};            
+
+        switch (dir) 
+        {
+            case 'l': 
+                toStart.value = '-180deg';
+                toStart.axis = 'Y';
+                fromStop.value = '180deg';
+                fromStop.axis = 'Y';
+                break;
+            case 'r':
+                    toStart.value = '180deg';
+                toStart.axis = 'Y';
+                fromStop.value = '-180deg';
+                fromStop.axis = 'Y';
+                break; 
+            case 'u': 
+                toStart.value = '-180deg';
+                toStart.axis = 'X';
+                fromStop.value = '180deg';
+                fromStop.axis = 'X';
+                break;
+            case 'd':
+                    toStart.value = '180deg';
+                toStart.axis = 'X';
+                fromStop.value = '-180deg';
+                fromStop.axis = 'X';
+                break;                 
+        };
+        
+        D.applyStyle(to, {
+            'webkitTransitionDuration': '0ms',
+            'webkitTransitionProperty': '-webkit-transform',
+            'webkitTransform': 'rotate' + toStart.axis + '(' + toStart.value + ')',
+            'webkitTransformStyle': 'preserve-3d',
+            'webkitBackfaceVisibility': 'hidden'
+        });                   
+            
+        D.select(to);
+
+        D.applyStyle(to, {
+            'webkitTransitionDuration': 'inherit'
+        });
+
+        D.applyStyle(from, {
+            'webkitTransitionDuration': 'inherit',
+            'webkitTransitionProperty': '-webkit-transform',
+            'webkitTransformStyle': 'preserve-3d',
+            'webkitBackfaceVisibility': 'hidden'
+        });
+
+        function complete() {
+            D.unbind(from, 'webkitTransitionEnd', complete, false);
+
+            D.applyStyle(to, {
+                'webkitTransitionProperty': 'inherit'
+            });
+            
+            D.applyStyle(from, {
+                'webkitTransitionProperty': 'inherit'
+            });
+     
+            if (D.hasClass(to, 'dialog') == false) D.unselect(from); 
+                
+            if (typeof fn === 'function') fn();
+        };
+            
+        D.bind(from, 'webkitTransitionEnd', complete, false);            
+        D.wait(function() {
+            D.applyStyle(from, {
+                'webkitTransform': 'rotate' + fromStop.axis + '(' + fromStop.value + ')'
+            });
+          
+            D.applyStyle(to, {
+                'webkitTransform': 'rotate' + toStart.axis + '(0deg)'
+            });
+        }, 0);     
+    });
+})();
+
