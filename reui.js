@@ -110,7 +110,8 @@ ReUI = {};
 
 (function() {  
     var R = ReUI,
-        D = ReUI.DomHelper;         
+        D = ReUI.DomHelper,
+        isWebKit = /webkit/i.test(navigator.userAgent);         
        
     var resolveFx = function(name) {
         return R.useCompatibleFx 
@@ -140,6 +141,12 @@ ReUI = {};
             else if (link.getAttribute('type') == 'cancel')
             {
                 if (context.dialog) D.unselect(context.dialog);                        
+            }          
+            else if (link.getAttribute('href', 2) === '#' ||
+                     link.getAttribute('href', 2) === null)
+            {       
+                /* do nothing */               
+                /* will not work on all browsers, as some will return the resolved url regardless */
             }
             else
             {
@@ -228,9 +235,9 @@ ReUI = {};
 
         var toFx = to.getAttribute('effect');
         var fromFx = from.getAttribute('effect');
-        var useFx = fromFx || toFx || R.defaultFx;
+        var useFx = fromFx || toFx;
 
-        var fx = resolveFx(useFx);
+        var fx = resolveFx(useFx) || resolveFx(R.defaultFx);
         if (fx) 
             fx(from, to, dir, complete);
     };                          
@@ -305,7 +312,7 @@ ReUI = {};
     
     D.apply(ReUI, {
         autoInit: true,
-        useCompatibleFx: false,
+        useCompatibleFx: !isWebKit,
         registeredFx: {},
         defaultFx: 'slide',
         rootEl: false, 
@@ -531,6 +538,88 @@ ReUI = {};
                 'webkitTransform': 'translate' + toStart.axis + '(0%)'
             });
         }, 0);            
+    });
+
+    R.registerFx('slide', true, function(from, to, dir, fn) {        
+        var toData = {prop: 'left', dir: 1, value: 0},
+            fromData = {prop: 'left', dir: 1, value: 0};            
+
+        switch (dir) 
+        {
+            case 'l':
+                toData.prop = 'left';
+                toData.dir = -1;
+                toData.value = 100;
+                fromData.prop = 'left';
+                fromData.dir = -1;
+                fromData.value = 0;
+                break;
+            case 'r':
+                toData.prop = 'right';
+                toData.dir = -1;
+                toData.value = 100;
+                fromData.prop = 'right';
+                fromData.dir = -1;
+                fromData.value = 0;
+                break;
+            case 'u':
+                toData.prop = 'top';
+                toData.dir = -1;
+                toData.value = 100;
+                fromData.prop = 'top';
+                fromData.dir = -1;
+                fromData.value = 0;
+                break;
+            case 'd':
+                toData.prop = 'bottom';
+                toData.dir = -1;
+                toData.value = 100;
+                fromData.prop = 'bottom';
+                fromData.dir = -1;
+                fromData.value = 0;
+                break;
+        };
+
+        var speed = R.stepSpeed || 10,
+            interval = R.stepInterval || 0,
+            frames = 100 / speed,
+            count = 1;
+        
+        step();
+
+        D.select(to);
+        
+        var timer = D.timer(step, interval);    
+
+        function step() {            
+            var toStyle = {},
+                fromStyle = {};
+
+            if (count > frames)
+            {
+                D.clearTimer(timer);
+                
+                if (D.hasClass(to, 'dialog') == false) D.unselect(from); 
+
+                toStyle[toData.prop] = 'inherit';                
+                fromStyle[fromData.prop] = 'inherit';
+
+                D.applyStyle(to, toStyle);
+                D.applyStyle(from, fromStyle);
+
+                if (typeof fn === 'function') fn();
+
+                return;
+            }            
+
+            toStyle[toData.prop] = toData.value + (toData.dir * (count * speed)) + '%';
+            fromStyle[fromData.prop] = fromData.value + (fromData.dir * (count * speed)) + '%';
+
+            D.applyStyle(to, toStyle);
+            D.applyStyle(from, fromStyle);
+            
+            count++;
+        };           
     });
 
     R.registerFx('flip', function(from, to, dir, fn) {             

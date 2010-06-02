@@ -5,7 +5,7 @@ ReUI does not try to make any assumptions as to how your application functions. 
 ReUI also includes some additional functionality:
 
 * flip effect for transitions
-* vertical directions for transitions
+* vertical transitions
 * ability to define the effect/direction of the transition per page
 * ability to show a page, without it being tracked in history
 
