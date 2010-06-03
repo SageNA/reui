@@ -245,7 +245,7 @@ ReUI = {};
     var checkOrientationAndLocation = function() {
         if (!context.hasOrientationEvent)
         {
-            if ((window.innerHeight != context.height) || (window.innerWidth != context.height))
+            if ((window.innerHeight != context.height) || (window.innerWidth != context.width))
             {
                 context.height = window.innerHeight;
                 context.width = window.innerWidth;
