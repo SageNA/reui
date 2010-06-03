@@ -1,12 +1,11 @@
 /*!
-* ReUI v0.5 
+* ReUI v1.0
 * Copyright 2010, Michael Morton
 *
 * MIT Licensed - See LICENSE
 *
-* Sections of this code can be attributed
-* to the iUI framework, on which this refactoring 
-* is based.
+* Sections of this code are Copyright (c) 2007-2009, iUI Project Members, and are
+* licensed under the terms of the BSD license (see LICENSE.iUI).
 */
 ReUI = {};
 
@@ -135,7 +134,7 @@ ReUI = {};
             : R.registeredFx[name];
     };
 
-    var onRootClick = function(evt) {    
+    var onRootClick = function(evt) {  
         var evt = evt || window.event;            
         var target = evt.target || evt.srcElement;
 
@@ -181,7 +180,7 @@ ReUI = {};
             if (typeof page.id !== 'string' || page.id.length <= 0)
                 page.id = 'liui-' + (context.counter++);
 
-            context.hash = location.hash = "#" + page.id;
+            context.hash = location.hash = R.hashPrefix + page.id;
 
             context.history.push(page.id);
         }
@@ -221,7 +220,7 @@ ReUI = {};
     
     var transition = function(from, to, o) {            
         function complete() {
-            context.check = D.wait(checkOrientationAndLocation, R.checkStateEvery);    
+            context.check = D.timer(checkOrientationAndLocation, R.checkStateEvery);    
                 
             D.wait(transitionComplete, 0, to, o);                               
                 
@@ -229,10 +228,18 @@ ReUI = {};
             D.dispatch(to, 'aftertransition', {out: false});
         };
                       
-        D.clearWait(context.check);
+        D.clearTimer(context.check);
 
         D.dispatch(from, 'beforetransition', {out: true});            
         D.dispatch(to, 'beforetransition', {out: false});
+
+        if (R.disableFx === true)
+        {
+            D.unselect(from);
+            D.select(to);
+            complete();
+            return;
+        }
 
         if (typeof o.horizontal !== 'boolean')
         {
@@ -256,7 +263,13 @@ ReUI = {};
         var fx = resolveFx(useFx) || resolveFx(R.defaultFx);
         if (fx) 
             fx(from, to, dir, complete);
-    };                          
+    };       
+    
+    var getPageFromHash = function(hash) {
+        if (hash && hash.indexOf(R.hashPrefix) === 0)
+            return D.get(hash.substr(R.hashPrefix.length));
+        return false;
+    };                   
 
     var checkOrientationAndLocation = function() {
         if (!context.hasOrientationEvent)
@@ -272,12 +285,10 @@ ReUI = {};
 
         if (context.hash != location.hash)
         {
-            var el = D.get(location.hash.substr(1));
+            var el = getPageFromHash(location.hash);            
             if (el) 
                 R.show(el);                    
-        }
-            
-        context.check = D.wait(checkOrientationAndLocation, R.checkStateEvery);
+        }         
     };
 
     var orientationChanged = function() {
@@ -330,13 +341,15 @@ ReUI = {};
         autoInit: true,
         useCompatibleFx: !isWebKit,
         registeredFx: {},
+        disableFx: false,
         defaultFx: 'slide',
         rootEl: false, 
         titleEl: false,      
         backEl: false, 
+        hashPrefix: '#_',
         backText: 'Back',               
         checkStateEvery: 250,
-        prioritizeLocation: false, 
+        prioritizeLocation: false,         
 
         init: function() {
             R.rootEl = R.rootEl || document.body;            
@@ -349,9 +362,9 @@ ReUI = {};
                 if (el.nodeType == 1 && el.getAttribute('selected') == 'true')
                     selectedEl = el;
 
-            if (location.hash && location.hash.length > 1)
+            if (location.hash)
             {
-                hashEl = D.get(location.hash.substr(1));
+                hashEl = getPageFromHash(location.hash);
             }           
 
             if (R.prioritizeLocation)
@@ -383,10 +396,14 @@ ReUI = {};
             {
                 window.onorientationchange = orientationChanged;
 
-                context.hasOrientationEvent = true;                
+                context.hasOrientationEvent = true;    
+                
+                D.wait(orientationChanged, 0);
             }
 
-            context.check = D.wait(checkOrientationAndLocation, R.checkStateEvery);
+            D.wait(checkOrientationAndLocation, 0);
+
+            context.check = D.timer(checkOrientationAndLocation, R.checkStateEvery);
 
             D.bind(R.rootEl, 'click', onRootClick);
         },
