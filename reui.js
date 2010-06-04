@@ -683,7 +683,7 @@ ReUI = {};
                 fromStop.axis = 'Y';
                 break;
             case 'r':
-                    toStart.value = '180deg';
+                toStart.value = '180deg';
                 toStart.axis = 'Y';
                 fromStop.value = '-180deg';
                 fromStop.axis = 'Y';
@@ -695,7 +695,7 @@ ReUI = {};
                 fromStop.axis = 'X';
                 break;
             case 'd':
-                    toStart.value = '180deg';
+                toStart.value = '180deg';
                 toStart.axis = 'X';
                 fromStop.value = '-180deg';
                 fromStop.axis = 'X';
