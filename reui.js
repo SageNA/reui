@@ -695,7 +695,7 @@ ReUI = {};
                 fromStop.axis = 'X';
                 break;
             case 'd':
-                toStart.value = '180deg';
+                    toStart.value = '180deg';
                 toStart.axis = 'X';
                 fromStop.value = '-180deg';
                 fromStop.axis = 'X';
