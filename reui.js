@@ -69,7 +69,7 @@ ReUI = {};
         wait: isIE 
             ? function(fn, delay) {
                 var pass = Array.prototype.slice.call(arguments, 2);
-                setTimeout(function() {
+                return setTimeout(function() {
                     fn.apply(this, pass);
                 }, delay);
             }
@@ -82,7 +82,7 @@ ReUI = {};
         timer: isIE 
             ? function(fn, delay) {
                 var pass = Array.prototype.slice.call(arguments, 2);
-                setInterval(function() {
+                return setInterval(function() {
                     fn.apply(this, pass);
                 }, delay);
             }
