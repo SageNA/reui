@@ -15,7 +15,7 @@ ReUI = {};
         reForClassCache = {};
 
     var reForClass = function(cls) {
-        return reForClassCache[cls] 
+        return reForClassCache[cls]
             ? (reForClassCache[cls])
             : (reForClassCache[cls] = new RegExp('(^|\\s)' + cls + '($|\\s)'));
     };
@@ -28,7 +28,7 @@ ReUI = {};
             if (c) for (var n in c) a[n] = c[n];
 
             return a;
-        }, 
+        },
         dispatch: function(el, type, bubble, cancel, o) {
             if (typeof cancel === 'object')
             {
@@ -39,7 +39,7 @@ ReUI = {};
             {
                 var o = bubble;
                 var bubble = true;
-                var cancel = true;    
+                var cancel = true;
             }
 
             var o = o || {};
@@ -49,14 +49,14 @@ ReUI = {};
             evt.initEvent(type, bubble === false ? false : true, cancel === false ? false : true);
 
             this.apply(evt, o);
-        
+
             el.dispatchEvent(evt);
         },
-        bind: isIE 
+        bind: isIE
             ? function(target, type, fn) {
                 target.attachEvent(type, fn);
             }
-            : function(target, type, fn, capture) {        
+            : function(target, type, fn, capture) {
                 target.addEventListener(type, fn, capture);
             },
         unbind: isIE
@@ -66,7 +66,7 @@ ReUI = {};
             : function(target, type, fn, capture) {
                 target.removeEventListener(type, fn, capture);
             },
-        wait: isIE 
+        wait: isIE
             ? function(fn, delay) {
                 var pass = Array.prototype.slice.call(arguments, 2);
                 return setTimeout(function() {
@@ -79,7 +79,7 @@ ReUI = {};
         clearWait: function() {
             clearTimeout.apply(window, arguments);
         },
-        timer: isIE 
+        timer: isIE
             ? function(fn, delay) {
                 var pass = Array.prototype.slice.call(arguments, 2);
                 return setInterval(function() {
@@ -96,7 +96,7 @@ ReUI = {};
             return reForClass(cls).test(el.className);
         },
         addClass: function(el, cls) {
-            if (this.hasClass(el, cls) == false) el.className += ' ' + cls;            
+            if (this.hasClass(el, cls) == false) el.className += ' ' + cls;
         },
         removeClass: function(el, cls) {
             if (this.hasClass(el, cls)) el.className = el.className.replace(reForClass(cls), ' ');
@@ -123,28 +123,28 @@ ReUI = {};
     };
 })();
 
-(function() {  
+(function() {
     var R = ReUI,
         D = ReUI.DomHelper,
-        isWebKit = /webkit/i.test(navigator.userAgent);         
-       
+        isWebKit = /webkit/i.test(navigator.userAgent);
+
     var resolveFx = function(name) {
-        return R.useCompatibleFx 
+        return R.useCompatibleFx
             ? R.registeredFx[name + 'Compatible']
             : R.registeredFx[name];
     };
 
-    var onRootClick = function(evt) {  
-        var evt = evt || window.event;            
+    var onRootClick = function(evt) {
+        var evt = evt || window.event;
         var target = evt.target || evt.srcElement;
 
         var link = D.findAncestorByTag(target, 'a');
-        if (link) 
-        {                
+        if (link)
+        {
             if (link.href && link.hash && link.hash != '#' && !link.target)
             {
                 D.select(link);
-                    
+
                 R.show(D.get(link.hash.substr(1)));
 
                 D.wait(D.unselect, 500, link);
@@ -155,12 +155,12 @@ ReUI = {};
             }
             else if (link.getAttribute('type') == 'cancel')
             {
-                if (context.dialog) D.unselect(context.dialog);                        
-            }          
+                if (context.dialog) D.unselect(context.dialog);
+            }
             else if (link.getAttribute('href', 2) === '#' ||
                      link.getAttribute('href', 2) === null)
-            {       
-                /* do nothing */               
+            {
+                /* do nothing */
                 /* will not work on all browsers, as some will return the resolved url regardless */
             }
             else
@@ -175,7 +175,7 @@ ReUI = {};
     };
 
     var transitionComplete = function(page, o) {
-        if (o.track !== false) 
+        if (o.track !== false)
         {
             if (typeof page.id !== 'string' || page.id.length <= 0)
                 page.id = 'liui-' + (context.counter++);
@@ -187,13 +187,13 @@ ReUI = {};
 
         context.transitioning = false;
 
-        if (o.scroll !== false) D.wait(scrollTo, 0, 0, 1); 
-          
-        if (o.update !== false) 
+        if (o.scroll !== false) D.wait(scrollTo, 0, 0, 1);
+
+        if (o.update !== false)
         {
             if (R.titleEl)
             {
-                if (page.title) 
+                if (page.title)
                     R.titleEl.innerHTML = page.title;
 
                 var titleCls = page.getAttribute('titleCls') || page.getAttribute('ttlclass');
@@ -202,13 +202,18 @@ ReUI = {};
             }
 
             /* only update back button if track is set to true, since there is no history entry for the new page */
-            if (R.backEl && o.track !== false) 
+            if (R.backEl && o.track !== false)
             {
                 var previous = D.get(context.history[context.history.length - 2]);
                 if (previous && !previous.getAttribute('hideBackButton'))
                 {
-                    R.backEl.style.display = 'inline';
-                    R.backEl.innerHTML = previous.title || R.backText;
+                    if (R.legacyMode)
+                        R.backEl.style.display = 'inline';
+                    else
+                        R.backEl.style.display = '';
+
+                    if (R.updateBackButtonText)
+                        R.backEl.innerHTML = previous.title || R.backText;
 
                     var backButtonCls = previous.getAttribute('backButtonCls') || previous.getAttribute('bbclass');
 
@@ -216,27 +221,30 @@ ReUI = {};
                 }
                 else
                 {
-                    R.backEl.style.display = 'none';
+                    if (R.legacyMode)
+                        R.backEl.style.display = 'none';
+                    else
+                        R.backEl.style.display = 'none';
                 }
             }
         }
-    };  
-    
-    var transition = function(from, to, o) {            
-        function complete() {            
+    };
+
+    var transition = function(from, to, o) {
+        function complete() {
             D.wait(transitionComplete, 0, to, o);
 
-            context.check = D.timer(checkOrientationAndLocation, R.checkStateEvery);                                                               
-                
-            D.dispatch(from, 'aftertransition', {out: true});            
+            context.check = D.timer(checkOrientationAndLocation, R.checkStateEvery);
+
+            D.dispatch(from, 'aftertransition', {out: true});
             D.dispatch(to, 'aftertransition', {out: false});
         };
-        
+
         context.transitioning = true;
 
         D.clearTimer(context.check);
 
-        D.dispatch(from, 'beforetransition', {out: true});            
+        D.dispatch(from, 'beforetransition', {out: true});
         D.dispatch(to, 'beforetransition', {out: false});
 
         if (R.disableFx === true)
@@ -249,7 +257,7 @@ ReUI = {};
 
         if (typeof o.horizontal !== 'boolean')
         {
-            var toHorizontal = to.getAttribute('horizontal');                
+            var toHorizontal = to.getAttribute('horizontal');
             var fromHorizontal = from.getAttribute('horizontal');
 
             if (toHorizontal === 'false' || fromHorizontal === 'false')
@@ -257,7 +265,7 @@ ReUI = {};
                 o.horizontal = false;
             }
         }
-            
+
         var dir = o.horizontal !== false
             ? o.reverse ? 'r' : 'l'
             : o.reverse ? 'd' : 'u';
@@ -267,15 +275,15 @@ ReUI = {};
         var useFx = fromFx || toFx;
 
         var fx = resolveFx(useFx) || resolveFx(R.defaultFx);
-        if (fx) 
+        if (fx)
             fx(from, to, dir, complete);
-    };       
-    
+    };
+
     var getPageFromHash = function(hash) {
         if (hash && hash.indexOf(R.hashPrefix) === 0)
             return D.get(hash.substr(R.hashPrefix.length));
         return false;
-    };                   
+    };
 
     var checkOrientationAndLocation = function() {
         if (!context.hasOrientationEvent)
@@ -291,15 +299,15 @@ ReUI = {};
 
         if (context.hash != location.hash)
         {
-            var el = getPageFromHash(location.hash);            
-            if (el) 
-                R.show(el);                    
-        }         
+            var el = getPageFromHash(location.hash);
+            if (el)
+                R.show(el);
+        }
     };
 
     var orientationChanged = function() {
-        switch (window.orientation) 
-        {                
+        switch (window.orientation)
+        {
             case 90:
             case -90:
                 setOrientation('landscape');
@@ -313,7 +321,7 @@ ReUI = {};
     var setOrientation = function(value) {
         R.rootEl.setAttribute('orient', value);
 
-        if (value == 'portrait') 
+        if (value == 'portrait')
         {
             D.removeClass(R.rootEl, 'landscape');
             D.addClass(R.rootEl, 'portrait');
@@ -329,7 +337,7 @@ ReUI = {};
             D.removeClass(R.rootEl, 'landscape');
         }
 
-        D.wait(scrollTo, 100, 0, 1); 
+        D.wait(scrollTo, 100, 0, 1);
     };
 
     var context = {
@@ -341,36 +349,38 @@ ReUI = {};
         width: 0,
         height: 0,
         check: 0,
-        hasOrientationEvent: false, 
+        hasOrientationEvent: false,
         history: []
     };
-    
+
     D.apply(ReUI, {
         autoInit: true,
+        legacyMode: true,
         useCompatibleFx: !isWebKit,
         registeredFx: {},
         disableFx: false,
         defaultFx: 'slide',
-        rootEl: false, 
-        titleEl: false,      
-        backEl: false, 
+        rootEl: false,
+        titleEl: false,
+        backEl: false,
+        updateBackButtonText: true,
         hashPrefix: '#_',
-        backText: 'Back',               
+        backText: 'Back',
         checkStateEvery: 250,
-        prioritizeLocation: false,         
+        prioritizeLocation: false,
 
         init: function() {
-            if (context.initialized) 
+            if (context.initialized)
                 return;
 
             context.initialized = true;
 
-            R.rootEl = R.rootEl || document.body;            
+            R.rootEl = R.rootEl || document.body;
             R.backEl = R.backEl || D.get('backButton');
             R.titleEl = R.titleEl || D.get('pageTitle');
 
             var selectedEl, hashEl;
-            var el = R.rootEl.firstChild;            
+            var el = R.rootEl.firstChild;
             for (; el; el = el.nextSibling)
                 if (el.nodeType == 1 && el.getAttribute('selected') == 'true')
                     selectedEl = el;
@@ -378,13 +388,13 @@ ReUI = {};
             if (location.hash)
             {
                 hashEl = getPageFromHash(location.hash);
-            }           
+            }
 
             if (R.prioritizeLocation)
             {
                 if (hashEl)
                 {
-                    if (selectedEl) D.unselect(selectedEl);                    
+                    if (selectedEl) D.unselect(selectedEl);
 
                     R.show(hashEl);
                 }
@@ -404,13 +414,13 @@ ReUI = {};
                     R.show(hashEl);
                 }
             }
-            
+
             if (typeof window.onorientationchange === 'object')
             {
                 window.onorientationchange = orientationChanged;
 
-                context.hasOrientationEvent = true;    
-                
+                context.hasOrientationEvent = true;
+
                 D.wait(orientationChanged, 0);
             }
 
@@ -445,7 +455,7 @@ ReUI = {};
         back: function() {
             history.go(-1);
         },
-        
+
         /// <summary>
         /// Available Options:
         ///     horizontal: True if the transition is horizontal, False otherwise.
@@ -457,7 +467,7 @@ ReUI = {};
         show: function(page, o) {
             if (context.transitioning) return; /* todo: should we queue the transition? */
 
-            if (typeof page === 'string') page = D.get(page);          
+            if (typeof page === 'string') page = D.get(page);
 
             var o = D.apply({
                 reverse: false
@@ -478,11 +488,11 @@ ReUI = {};
 
             if (context.dialog)
             {
-                D.unselect(context.dialog);                
+                D.unselect(context.dialog);
                 D.dispatch(context.dialog, 'blur', false);
 
                 context.dialog = false;
-            }  
+            }
 
             if (D.hasClass(page, 'dialog'))
             {
@@ -509,15 +519,15 @@ ReUI = {};
                     if (o.reverse) D.dispatch(context.page, 'unload', false);
 
                     D.wait(transition, 0, from, page, o);
-                }       
+                }
                 else
-                {   
+                {
                     D.select(page);
-                                     
+
                     transitionComplete(page, o);
                 }
             }
-        }                    
+        }
     });
 
     D.bind(window, 'load', function(evt) {
@@ -530,13 +540,13 @@ ReUI = {};
     var R = ReUI,
         D = ReUI.DomHelper;
 
-    R.registerFx('slide', function(from, to, dir, fn) {              
+    R.registerFx('slide', function(from, to, dir, fn) {
         var toStart = {value: '0%', axis: 'X'};
-        var fromStop = {value: '0%', axis: 'X'};            
+        var fromStop = {value: '0%', axis: 'X'};
 
-        switch (dir) 
+        switch (dir)
         {
-            case 'l': 
+            case 'l':
                 toStart.value = (window.innerWidth) + 'px';
                 toStart.axis = 'X';
                 fromStop.value = '-100%';
@@ -561,19 +571,19 @@ ReUI = {};
                 fromStop.axis = 'Y';
                 break;
         };
-      
+
         D.applyStyle(to, {
             'webkitTransitionDuration': '0ms',
             'webkitTransitionProperty': '-webkit-transform',
             'webkitTransform': 'translate' + toStart.axis + '(' + toStart.value + ')'
         });
-            
+
         D.select(to);
 
         D.applyStyle(to, {
             'webkitTransitionDuration': 'inherit'
         });
-                
+
         D.applyStyle(from, {
             'webkitTransitionDuration': 'inherit',
             'webkitTransitionProperty': '-webkit-transform'
@@ -584,19 +594,19 @@ ReUI = {};
 
             D.applyStyle(to, {
                 'webkitTransitionProperty': 'inherit'
-            }); 
-            
+            });
+
             D.applyStyle(from, {
                 'webkitTransitionProperty': 'inherit'
             });
 
-            if (D.hasClass(to, 'dialog') == false) D.unselect(from);  
-     
+            if (D.hasClass(to, 'dialog') == false) D.unselect(from);
+
             if (typeof fn === 'function') fn();
         };
-            
-        D.bind(from, 'webkitTransitionEnd', complete, false);            
-        D.wait(function() {            
+
+        D.bind(from, 'webkitTransitionEnd', complete, false);
+        D.wait(function() {
             D.applyStyle(from, {
                 'webkitTransform': 'translate' + fromStop.axis + '(' + fromStop.value + ')'
             });
@@ -604,14 +614,14 @@ ReUI = {};
             D.applyStyle(to, {
                 'webkitTransform': 'translate' + toStart.axis + '(0%)'
             });
-        }, 0);            
+        }, 0);
     });
 
-    R.registerFx('slide', true, function(from, to, dir, fn) {        
+    R.registerFx('slide', true, function(from, to, dir, fn) {
         var toData = {prop: 'left', dir: 1, value: 0},
-            fromData = {prop: 'left', dir: 1, value: 0};            
+            fromData = {prop: 'left', dir: 1, value: 0};
 
-        switch (dir) 
+        switch (dir)
         {
             case 'l':
                 toData.prop = 'left';
@@ -651,24 +661,24 @@ ReUI = {};
             interval = R.stepInterval || 0,
             frames = 100 / speed,
             count = 1;
-        
+
         step();
 
         D.select(to);
-        
-        var timer = D.timer(step, interval);    
 
-        function step() {            
+        var timer = D.timer(step, interval);
+
+        function step() {
             var toStyle = {},
                 fromStyle = {};
 
             if (count > frames)
             {
                 D.clearTimer(timer);
-                
-                if (D.hasClass(to, 'dialog') == false) D.unselect(from); 
 
-                toStyle[toData.prop] = 'inherit';                
+                if (D.hasClass(to, 'dialog') == false) D.unselect(from);
+
+                toStyle[toData.prop] = 'inherit';
                 fromStyle[fromData.prop] = 'inherit';
 
                 D.applyStyle(to, toStyle);
@@ -677,25 +687,25 @@ ReUI = {};
                 if (typeof fn === 'function') fn();
 
                 return;
-            }            
+            }
 
             toStyle[toData.prop] = toData.value + (toData.dir * (count * speed)) + '%';
             fromStyle[fromData.prop] = fromData.value + (fromData.dir * (count * speed)) + '%';
 
             D.applyStyle(to, toStyle);
             D.applyStyle(from, fromStyle);
-            
+
             count++;
-        };           
+        };
     });
 
-    R.registerFx('flip', function(from, to, dir, fn) {             
+    R.registerFx('flip', function(from, to, dir, fn) {
         var toStart = {value: '0deg', axis: 'Y'};
-        var fromStop = {value: '0deg', axis: 'Y'};            
+        var fromStop = {value: '0deg', axis: 'Y'};
 
-        switch (dir) 
+        switch (dir)
         {
-            case 'l': 
+            case 'l':
                 toStart.value = '-180deg';
                 toStart.axis = 'Y';
                 fromStop.value = '180deg';
@@ -706,8 +716,8 @@ ReUI = {};
                 toStart.axis = 'Y';
                 fromStop.value = '-180deg';
                 fromStop.axis = 'Y';
-                break; 
-            case 'u': 
+                break;
+            case 'u':
                 toStart.value = '-180deg';
                 toStart.axis = 'X';
                 fromStop.value = '180deg';
@@ -718,17 +728,17 @@ ReUI = {};
                 toStart.axis = 'X';
                 fromStop.value = '-180deg';
                 fromStop.axis = 'X';
-                break;                 
+                break;
         };
-        
+
         D.applyStyle(to, {
             'webkitTransitionDuration': '0ms',
             'webkitTransitionProperty': '-webkit-transform',
             'webkitTransform': 'rotate' + toStart.axis + '(' + toStart.value + ')',
             'webkitTransformStyle': 'preserve-3d',
             'webkitBackfaceVisibility': 'hidden'
-        });                   
-            
+        });
+
         D.select(to);
 
         D.applyStyle(to, {
@@ -748,26 +758,26 @@ ReUI = {};
             D.applyStyle(to, {
                 'webkitTransitionProperty': 'inherit'
             });
-            
+
             D.applyStyle(from, {
                 'webkitTransitionProperty': 'inherit'
             });
-     
-            if (D.hasClass(to, 'dialog') == false) D.unselect(from); 
-                
+
+            if (D.hasClass(to, 'dialog') == false) D.unselect(from);
+
             if (typeof fn === 'function') fn();
         };
-            
-        D.bind(from, 'webkitTransitionEnd', complete, false);            
+
+        D.bind(from, 'webkitTransitionEnd', complete, false);
         D.wait(function() {
             D.applyStyle(from, {
                 'webkitTransform': 'rotate' + fromStop.axis + '(' + fromStop.value + ')'
             });
-          
+
             D.applyStyle(to, {
                 'webkitTransform': 'rotate' + toStart.axis + '(0deg)'
             });
-        }, 0);     
+        }, 0);
     });
 })();
 
